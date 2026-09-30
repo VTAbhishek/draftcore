@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion'
+import { motion, useScroll, useTransform } from 'framer-motion'
 import { ArrowUpRight, Pause, Play } from 'lucide-react'
 import MagneticButton from '../MagneticButton.jsx'
 import HeroVideo from './HeroVideo.jsx'
@@ -33,7 +33,7 @@ export default function Hero() {
   const [phase, setPhase] = useState(0)
   const [active, setActive] = useState(true)
   const [paused, setPaused] = useState(false)
-  const reduced = !!useReducedMotion()
+  const [ended, setEnded] = useState(false)
   const ready = useIntroDone()
 
   useEffect(() => {
@@ -55,12 +55,13 @@ export default function Hero() {
     animate: ready ? { opacity: 1, y: 0 } : { opacity: 0, y: 18 },
     transition: { duration: 0.9, delay, ease: EASE },
   })
-  const highlight = reduced ? 2 : phase
+  // once the film finishes the poster (final render) holds, so settle on the render stage
+  const highlight = ended ? 2 : phase
 
   return (
     <section ref={ref} className="theme-dark relative flex min-h-[100svh] flex-col overflow-hidden bg-canvas" aria-label="Introduction">
       <motion.div className="absolute inset-0" style={{ scale: mediaScale, y: mediaY }}>
-        <HeroVideo active={active} paused={paused} reduced={reduced} onPhase={setPhase} />
+        <HeroVideo active={active} paused={paused} onPhase={setPhase} onEnded={() => setEnded(true)} />
       </motion.div>
 
       {/* legibility */}
@@ -69,7 +70,7 @@ export default function Hero() {
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-canvas to-transparent" />
       <div className="bg-blueprint pointer-events-none absolute inset-0 opacity-40 [mask-image:linear-gradient(90deg,#000,transparent_60%)]" />
 
-      <Hud phase={phase} showPhases={!reduced} />
+      <Hud phase={highlight} />
 
       <motion.div
         style={{ y: contentY, opacity: contentOpacity }}
@@ -126,7 +127,7 @@ export default function Hero() {
         </motion.p>
       </motion.div>
 
-      {!reduced && (
+      {!ended && (
         <button
           type="button"
           onClick={() => setPaused((p) => !p)}

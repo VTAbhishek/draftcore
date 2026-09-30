@@ -14,11 +14,14 @@ function phaseAt(t) {
   return idx
 }
 
-// Background hero film. Respects reduced motion (poster only), pauses off-screen, reports HUD phase.
-export default function HeroVideo({ active, paused, reduced, onPhase }) {
+// Background hero film. Plays once per page load, then fades out to the poster image, which holds.
+// Plays even with reduced motion on (it runs once and has a pause button); pauses off-screen, reports HUD phase.
+export default function HeroVideo({ active, paused, onPhase, onEnded }) {
   const ref = useRef(null)
   const [set, setSet] = useState(pickSet)
   const [loaded, setLoaded] = useState(false)
+  const [ended, setEnded] = useState(false)
+  const [gone, setGone] = useState(false)
 
   useEffect(() => {
     const mq = window.matchMedia('(max-aspect-ratio: 1/1)')
@@ -29,10 +32,10 @@ export default function HeroVideo({ active, paused, reduced, onPhase }) {
 
   useEffect(() => {
     const v = ref.current
-    if (!v) return
-    if (active && !paused && !reduced) v.play().catch(() => {})
+    if (!v || ended) return
+    if (active && !paused) v.play().catch(() => {})
     else v.pause()
-  }, [active, paused, reduced, set])
+  }, [active, paused, set, ended])
 
   useEffect(() => {
     const v = ref.current
@@ -47,7 +50,12 @@ export default function HeroVideo({ active, paused, reduced, onPhase }) {
     }
     v.addEventListener('timeupdate', tick)
     return () => v.removeEventListener('timeupdate', tick)
-  }, [onPhase, set])
+  }, [onPhase, set, gone])
+
+  const finish = () => {
+    setEnded(true)
+    onEnded?.()
+  }
 
   return (
     <>
@@ -58,22 +66,23 @@ export default function HeroVideo({ active, paused, reduced, onPhase }) {
         className="absolute inset-0 h-full w-full object-cover"
         fetchpriority="high"
       />
-      {!reduced && (
+      {!gone && (
         <video
-          key={set.mp4}
+          key={set.webm}
           ref={ref}
-          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ${loaded ? 'opacity-100' : 'opacity-0'}`}
+          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ${loaded && !ended ? 'opacity-100' : 'opacity-0'}`}
           poster={url(set.poster)}
           muted
-          loop
           playsInline
           autoPlay
           preload="auto"
           aria-hidden="true"
           onCanPlay={() => setLoaded(true)}
+          onEnded={finish}
+          onTransitionEnd={() => ended && setGone(true)}
         >
-          <source src={url(set.mp4)} type="video/mp4" />
           <source src={url(set.webm)} type="video/webm" />
+          <source src={url(set.mp4)} type="video/mp4" />
         </video>
       )}
     </>
