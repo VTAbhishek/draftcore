@@ -1,0 +1,14 @@
+# dependencies & build output
+node_modules/
+dist/
+.vite/
+
+# enquiry uploads / logs written by the PHP handler
+storage/
+
+# environment & local files
+.env
+.env.*
+*.log
+.DS_Store
+Thumbs.db
